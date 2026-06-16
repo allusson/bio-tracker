@@ -18,7 +18,7 @@
   #hdr  { height: 56px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; padding: 0 16px; background: #fff; flex-shrink: 0; gap: 14px; }
   #main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
   #sb   { width: 272px; flex-shrink: 0; border-right: 1px solid #e5e7eb; background: #fff; padding: 14px; overflow-y: auto; }
-  #viz  { flex: 1; padding: 12px; min-width: 0; overflow: hidden; background: #f9fafb; display: flex; flex-direction: column; }
+  #viz  { flex: 1; padding: 12px; min-width: 0; overflow: hidden; background: #f9fafb; display: flex; flex-direction: column; gap: 8px; }
   #ftr  { height: 58px; border-top: 1px solid #e5e7eb; display: flex; align-items: center; padding: 0 16px; background: #fff; flex-shrink: 0; gap: 8px; overflow-x: auto; }
 
   /* ── Tabs ── */
@@ -30,6 +30,10 @@
 
   /* ── Play button ── */
   #playbtn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #d1d5db; background: #f9fafb; color: #6b7280; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ── Speed buttons ── */
+  .spd-btn { padding: 4px 8px; border-radius: 5px; border: 1px solid #e5e7eb; background: #f9fafb; color: #6b7280; font-size: 11px; font-weight: 500; }
+  .spd-btn.active { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
 
   /* ── Zone badge ── */
   #zbadge { border-radius: 12px; padding: 11px; margin-bottom: 14px; }
@@ -57,7 +61,27 @@
   .szdesc { font-size: 10px; color: #9ca3af; }
 
   /* ── MDS layout ── */
-  #mds-wrap { width: 100%; height: 100%; display: none; gap: 10px; align-items: stretch; }
+  #mds-wrap { width: 100%; flex: 1; min-height: 0; display: none; gap: 10px; align-items: stretch; }
+
+  /* ── Floor plan wrap ── */
+  #fp-wrap { flex: 1; min-height: 0; }
+
+  /* ── Scrubber ── */
+  #scrubber-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  #scrubber { flex: 1; accent-color: #2563eb; cursor: pointer; height: 4px; }
+  #scrubber-time { font-size: 10px; color: #9ca3af; width: 30px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+  /* ── Tooltip ── */
+  #tooltip { position: fixed; z-index: 999; background: #0c1a28; border: 1px solid #1c3855; border-radius: 8px; padding: 8px 10px; pointer-events: none; display: none; min-width: 160px; }
+  #tooltip .tt-title { font-size: 11px; font-weight: 600; color: #c8ddf0; margin-bottom: 5px; }
+  #tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; font-size: 11px; line-height: 1.7; }
+
+  /* ── Floor plan toggle ── */
+  .fp-toggle { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; color: #6b7280; font-size: 12px; font-weight: 500; margin-bottom: 12px; text-align: left; }
+  .fp-toggle.on { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+
+  /* ── Stage 2 legend swatch ── */
+  .leg-swatch { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -71,6 +95,11 @@
     </div>
     <div style="width:1px;height:26px;background:#e5e7eb;flex-shrink:0"></div>
     <div id="tabs" style="display:flex;gap:2px;flex:1;overflow:hidden"></div>
+    <div style="display:flex;gap:2px;flex-shrink:0">
+      <button class="spd-btn" id="spd05" onclick="setSpeed(0.5)">0.5×</button>
+      <button class="spd-btn active" id="spd1" onclick="setSpeed(1)">1×</button>
+      <button class="spd-btn" id="spd2" onclick="setSpeed(2)">2×</button>
+    </div>
     <button id="playbtn" onclick="togglePlay()">⏸</button>
   </div>
 
@@ -80,9 +109,9 @@
     <!-- Sidebar -->
     <div id="sb">
       <div id="zbadge">
-        <div id="zb-lbl" class="">Currently in</div>
+        <div id="zb-lbl">Currently in</div>
         <div id="zb-name"></div>
-        <div id="zb-desc" class=""></div>
+        <div id="zb-desc"></div>
       </div>
       <div id="sc"></div>
     </div>
@@ -90,16 +119,16 @@
     <!-- Visualization -->
     <div id="viz">
 
-      <!-- Floor plan (stages 1 & 2) -->
-      <div id="fp-wrap" style="width:100%;height:100%">
+      <!-- Signal / trajectory view (stages 1 & 2) -->
+      <div id="fp-wrap">
         <svg id="fp" viewBox="0 0 760 440" style="width:100%;height:100%;display:block"
              preserveAspectRatio="xMidYMid meet"></svg>
       </div>
 
       <!-- MDS view (stage 3) -->
-      <div id="mds-wrap" style="flex:1;min-height:0">
+      <div id="mds-wrap">
         <div style="flex:0 0 40%;display:flex;flex-direction:column">
-          <div style="font-size:9px;color:#9ca3af;font-weight:500;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;flex-shrink:0">Actual floor plan</div>
+          <div style="font-size:9px;color:#9ca3af;font-weight:500;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;flex-shrink:0">Device trajectory</div>
           <div style="flex:1;min-height:0">
             <svg id="mfp" viewBox="0 0 760 440" style="width:100%;height:100%;display:block"
                  preserveAspectRatio="xMidYMid meet"></svg>
@@ -110,15 +139,25 @@
           <span style="font-size:16px;color:#9ca3af">→</span>
         </div>
         <div style="flex:1;display:flex;flex-direction:column">
-          <div style="display:flex;justify-content:space-between;margin-bottom:7px;flex-shrink:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;flex-shrink:0">
             <div style="font-size:9px;color:#9ca3af;font-weight:500;letter-spacing:1px;text-transform:uppercase">MDS pseudo-map · data-derived</div>
-            <div style="font-size:9px;color:#9ca3af;font-style:italic">topological, not metric</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:9px;color:#9ca3af;font-style:italic">topological, not metric</div>
+              <button onclick="rebuildMDS()" style="font-size:9px;padding:3px 8px;border-radius:5px;border:1px solid #1c3855;background:#0a1929;color:#5b9acc;font-weight:500">↺ Rebuild</button>
+            </div>
           </div>
           <div style="flex:1;min-height:0">
             <svg id="mg" viewBox="0 0 560 360" style="width:100%;height:100%;display:block"
                  preserveAspectRatio="xMidYMid meet"></svg>
           </div>
         </div>
+      </div>
+
+      <!-- Timeline scrubber -->
+      <div id="scrubber-wrap">
+        <span style="font-size:9px;color:#9ca3af;font-weight:500;letter-spacing:1px;text-transform:uppercase;flex-shrink:0">Timeline</span>
+        <input type="range" id="scrubber" min="0" max="1000" value="0" step="1"/>
+        <span id="scrubber-time">0.0s</span>
       </div>
 
     </div>
@@ -135,6 +174,9 @@
 
 </div><!-- #app -->
 
+<!-- Floating tooltip -->
+<div id="tooltip"><div class="tt-title" id="tt-title"></div><div id="tt-body"></div></div>
+
 <script>
 // ════════════════════════════════════════════════════════════════════════════
 // Data
@@ -142,6 +184,7 @@
 
 const FW=760, FH=440, HY=188, HH=64, HB=252, CYCLE=24000;
 const ZCOL = ['#4a7fe8','#22c47a','#e89810','#8a6edc','#e04e4e','#0ec8d8'];
+const PATH_SAMPLES = 280;
 
 const ROOMS = [
   {id:'r101',  label:'Room 101',        x:0,   y:0,   w:162, h:HY    },
@@ -182,11 +225,9 @@ const MEDGES = [
   [1,4,.65],[3,5,.52],[4,5,.3],[0,4,.6],[1,3,.3],
 ];
 
-// Wall segments: gaps at door positions (hub x ± 14px)
 const WSEG = [[0,67],[95,222],[250,390],[418,615],[643,760]];
-const DX   = [81, 236, 404, 629]; // door x-centers
+const DX   = [81, 236, 404, 629];
 
-// Device trajectory waypoints
 const WP = [
   [81,94],[81,220],[236,220],[236,94],[236,220],[404,220],
   [404,94],[404,220],[629,220],[629,94],[629,220],[404,220],
@@ -207,14 +248,23 @@ const BMKS = ['94–99% zone-level','~85% region-level','~4.4 m avg error'];
 // State
 // ════════════════════════════════════════════════════════════════════════════
 
-let stage=1, ms=0, playing=true, showRaw=true;
-let startTime=null, msRef=0, rafId=null, lastZone=-1, lastRssiT=0;
+let stage=1, ms=0, playing=true, playSpeed=1;
+let msRef=0, rafId=null, lastZone=-1, lastRssiWall=0, lastFrameNow=null;
+let showFloorPlan=false, selectedHub=null;
+let mdsBuildTime=0;
+let scrubDragging=false, wasPlayingBeforeScrub=false;
+
+const MDS_BUILD = 7000, MDS_HOLD = 2500, MDS_TOTAL = MDS_BUILD + MDS_HOLD;
+
+// Pre-computed full-cycle path samples
+let rawPts = [], hmmPts = [];
 
 // ════════════════════════════════════════════════════════════════════════════
 // Helpers
 // ════════════════════════════════════════════════════════════════════════════
 
 const lerp = (a,b,t) => a + (b-a)*t;
+const clamp01 = v => Math.max(0, Math.min(1, v));
 
 function dPos(t) {
   const n = WP.length - 1;
@@ -230,17 +280,18 @@ function roomAt(x, y) {
   return 'hall';
 }
 
-function zoneOf(rid)  { return ZONES.find(z => z.rooms.includes(rid)) || ZONES[2]; }
-function rssiOf(dx,dy,hx,hy) {
-  return Math.round(Math.max(-90, -45 - 27 * Math.log10(Math.max(Math.hypot(dx-hx,dy-hy)/21, 0.1))));
+function zoneOf(rid)   { return ZONES.find(z => z.rooms.includes(rid)) || ZONES[2]; }
+function rssiOf(px,py,hx,hy) {
+  return Math.round(Math.max(-90, -45 - 27 * Math.log10(Math.max(Math.hypot(px-hx,py-hy)/21, 0.1))));
 }
-function rn(v)       { return Math.max(0, Math.min(1, (v+90)/55)); }
-function ca(c, a)    {
+function rn(v)  { return clamp01((v+90)/55); }
+function ca(c, a) {
   const r=parseInt(c.slice(1,3),16), g=parseInt(c.slice(3,5),16), b=parseInt(c.slice(5,7),16);
   return `rgba(${r},${g},${b},${a})`;
 }
+function noiseX(t) { return Math.sin(t*.023)*17 + Math.cos(t*.037)*10; }
+function noiseY(t) { return Math.cos(t*.031)*13 + Math.sin(t*.041)*8;  }
 
-// SVG element helpers
 function se(tag, attrs={}) {
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
@@ -248,146 +299,270 @@ function se(tag, attrs={}) {
 }
 function sat(el, attrs) {
   for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
-  return el;
+}
+
+function precomputePaths() {
+  rawPts = []; hmmPts = [];
+  for (let i = 0; i < PATH_SAMPLES; i++) {
+    const t = (i / PATH_SAMPLES) * CYCLE;
+    const p = dPos(t);
+    rawPts.push({x: p.x + noiseX(t), y: p.y + noiseY(t)});
+    hmmPts.push({x: p.x, y: p.y});
+  }
+}
+
+function buildPathD(pts, count) {
+  if (count < 2) return '';
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 1; i < count; i++) d += ` L${pts[i].x.toFixed(1)},${pts[i].y.toFixed(1)}`;
+  return d;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// SVG floor plan builder (shared by main FP and mini FP in stage 3)
+// Tooltip
 // ════════════════════════════════════════════════════════════════════════════
 
-function buildBase(svg) {
-  svg.appendChild(se('rect', {width:FW, height:FH, fill:'#08111d'}));
+function showTooltip(title, bodyHTML, e) {
+  document.getElementById('tt-title').textContent = title;
+  document.getElementById('tt-body').innerHTML = bodyHTML;
+  const tt = document.getElementById('tooltip');
+  tt.style.display = 'block';
+  positionTooltip(e);
+}
+function positionTooltip(e) {
+  const tt = document.getElementById('tooltip');
+  if (tt.style.display === 'none') return;
+  let x = e.clientX + 14, y = e.clientY - 10;
+  if (x + 180 > window.innerWidth)  x = e.clientX - 190;
+  if (y + 140 > window.innerHeight) y = e.clientY - 140;
+  tt.style.left = x + 'px';
+  tt.style.top  = y + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
 
-  // Zone fills
-  const fills = ROOMS.map(r => {
-    const z = zoneOf(r.id);
-    const el = se('rect', {x:r.x+1, y:r.y+1, width:r.w-2, height:r.h-2, fill:z.color, 'fill-opacity':.07});
-    svg.appendChild(el);
-    return el;
+function hubTooltipBody(hi) {
+  const h = HUBS[hi];
+  const pos = dPos(ms);
+  const v = rssiOf(pos.x, pos.y, h.x, h.y);
+  const n = rn(v), hue = Math.round(n * 120);
+  return `<div class="tt-row"><span style="color:#6b9ac4">Hub ID</span><b style="color:#e2e8f0">${h.id}</b></div>
+          <div class="tt-row"><span style="color:#6b9ac4">RSSI</span><b style="color:hsl(${hue},70%,60%)">${v} dBm</b></div>`;
+}
+
+function deviceTooltipBody() {
+  const pos = dPos(ms);
+  const zone = zoneOf(roomAt(pos.x, pos.y));
+  const rows = HUBS.map(h => {
+    const v = rssiOf(pos.x, pos.y, h.x, h.y);
+    const hue = Math.round(rn(v) * 120);
+    return `<div class="tt-row"><span style="color:#6b9ac4">${h.label}</span><span style="color:hsl(${hue},70%,60%);font-family:monospace">${v} dBm</span></div>`;
+  }).join('');
+  return `<div style="color:${zone.color};font-size:10px;margin-bottom:4px">${zone.name} · ${zone.desc}</div>${rows}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Floor plan overlay (room outlines, walls, furniture — no zone fills)
+// ════════════════════════════════════════════════════════════════════════════
+
+function buildFloorplanOverlay(parent) {
+  const g = se('g');
+  // Room outline strokes only
+  ROOMS.filter(r => r.id !== 'hall').forEach(r => {
+    g.appendChild(se('rect', {x:r.x+1, y:r.y+1, width:r.w-2, height:r.h-2,
+      fill:'none', stroke:'#1b3450', 'stroke-width':1.2, opacity:.7}));
   });
-
   // Patient beds
   [{x:10,y:12},{x:172,y:12},{x:508,y:12},{x:10,y:HB+12},{x:172,y:HB+12},{x:508,y:HB+12}].forEach(b => {
-    const g = se('g', {opacity:.38});
-    g.appendChild(se('rect', {x:b.x, y:b.y, width:48, height:26, rx:3, fill:'none', stroke:'#1a3050', 'stroke-width':1.2}));
-    g.appendChild(se('rect', {x:b.x, y:b.y, width:48, height:8,  rx:2, fill:'#1a3050'}));
-    svg.appendChild(g);
+    const bg = se('g', {opacity:.35});
+    bg.appendChild(se('rect', {x:b.x, y:b.y, width:48, height:26, rx:3, fill:'none', stroke:'#1a3050', 'stroke-width':1.2}));
+    bg.appendChild(se('rect', {x:b.x, y:b.y, width:48, height:8,  rx:2, fill:'#1a3050'}));
+    g.appendChild(bg);
   });
-
   // Nurses desk
-  svg.appendChild(se('path', {d:'M 322,12 L 488,12 L 488,44 L 454,44 L 454,22 L 322,22 Z',
-    fill:'none', stroke:'#1a3050', 'stroke-width':1.2, opacity:.5}));
-
+  g.appendChild(se('path', {d:'M 322,12 L 488,12 L 488,44 L 454,44 L 454,22 L 322,22 Z',
+    fill:'none', stroke:'#1a3050', 'stroke-width':1.2, opacity:.45}));
   // Outer boundary
-  svg.appendChild(se('rect', {x:.75, y:.75, width:FW-1.5, height:FH-1.5,
+  g.appendChild(se('rect', {x:.75, y:.75, width:FW-1.5, height:FH-1.5,
     fill:'none', stroke:'#1b3450', 'stroke-width':1.5}));
-
-  // Hallway walls with door gaps + door arcs
+  // Hallway walls + door arcs
   [HY, HB].forEach(wy => {
     WSEG.forEach(([x1,x2]) =>
-      svg.appendChild(se('line', {x1, y1:wy, x2, y2:wy, stroke:'#172b40', 'stroke-width':1.5})));
+      g.appendChild(se('line', {x1, y1:wy, x2, y2:wy, stroke:'#172b40', 'stroke-width':1.5})));
     DX.forEach(cx =>
-      svg.appendChild(se('path', {
+      g.appendChild(se('path', {
         d:`M${cx-14},${wy} A14,14 0 0,${wy===HY?0:1} ${cx+14},${wy}`,
         fill:'none', stroke:'#22394f', 'stroke-width':1,
       })));
   });
-
-  // Vertical room dividers
+  // Vertical dividers
   [162, 310, 498].forEach(x => {
-    svg.appendChild(se('line', {x1:x, y1:0,  x2:x, y2:HY,  stroke:'#172b40', 'stroke-width':1.5}));
-    svg.appendChild(se('line', {x1:x, y1:HB, x2:x, y2:FH,  stroke:'#172b40', 'stroke-width':1.5}));
+    g.appendChild(se('line', {x1:x, y1:0,  x2:x, y2:HY,  stroke:'#172b40', 'stroke-width':1.5}));
+    g.appendChild(se('line', {x1:x, y1:HB, x2:x, y2:FH,  stroke:'#172b40', 'stroke-width':1.5}));
   });
-
   // Room labels
   ROOMS.filter(r => r.id !== 'hall').forEach(r => {
     const t = se('text', {x:r.x+r.w/2, y:r.y+r.h*.64,
       fill:'#22394f', 'font-size':11, 'text-anchor':'middle', 'font-weight':500});
-    t.textContent = r.label;
-    svg.appendChild(t);
+    t.textContent = r.label; g.appendChild(t);
   });
-
   // Corridor label
   const cl = se('text', {x:FW/2, y:HY+HH/2+1,
     fill:'#162535', 'font-size':10, 'text-anchor':'middle', 'dominant-baseline':'middle',
     'letter-spacing':5, 'font-weight':700});
-  cl.textContent = 'CORRIDOR';
-  svg.appendChild(cl);
-
-  // Hub icons
-  HUBS.forEach(h => {
-    const g = se('g', {transform:`translate(${h.x},${h.y})`});
-    g.appendChild(se('path', {d:`M-7,-13 A9,9 0 0,1 7,-13`,  fill:'none', stroke:'#192d44', 'stroke-width':1.5}));
-    g.appendChild(se('path', {d:`M-4,-10 A5,5 0 0,1 4,-10`, fill:'none', stroke:'#192d44', 'stroke-width':1.5}));
-    g.appendChild(se('rect', {x:-8, y:-8, width:16, height:16, rx:3, fill:'#05101c', stroke:'#192d44', 'stroke-width':1.2}));
-    const id = se('text', {x:0, y:1, fill:'#192d44', 'font-size':9, 'text-anchor':'middle',
-      'dominant-baseline':'middle', 'font-weight':700}); id.textContent = h.id; g.appendChild(id);
-    const lb = se('text', {x:0, y:22, fill:'#192d44', 'font-size':8, 'text-anchor':'middle'});
-    lb.textContent = h.label; g.appendChild(lb);
-    svg.appendChild(g);
-  });
-
-  return fills;
+  cl.textContent = 'CORRIDOR'; g.appendChild(cl);
+  parent.appendChild(g);
+  return g;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Init: build all SVG elements once, store refs for per-frame updates
+// Hub icons builder (reused in fp and mfp)
+// ════════════════════════════════════════════════════════════════════════════
+
+function buildHubIcons(parent, clickable) {
+  return HUBS.map((h, hi) => {
+    const g = se('g', {transform:`translate(${h.x},${h.y})`, style: clickable ? 'cursor:pointer' : ''});
+    g.appendChild(se('path', {d:`M-7,-13 A9,9 0 0,1 7,-13`,  fill:'none', stroke:'#192d44', 'stroke-width':1.5}));
+    g.appendChild(se('path', {d:`M-4,-10 A5,5 0 0,1 4,-10`, fill:'none', stroke:'#192d44', 'stroke-width':1.5}));
+    const box = se('rect', {x:-8, y:-8, width:16, height:16, rx:3, fill:'#05101c', stroke:'#192d44', 'stroke-width':1.2});
+    g.appendChild(box);
+    const idTxt = se('text', {x:0, y:1, fill:'#192d44', 'font-size':9, 'text-anchor':'middle',
+      'dominant-baseline':'middle', 'font-weight':700});
+    idTxt.textContent = h.id; g.appendChild(idTxt);
+    const lb = se('text', {x:0, y:22, fill:'#192d44', 'font-size':8, 'text-anchor':'middle'});
+    lb.textContent = h.label; g.appendChild(lb);
+    if (clickable) {
+      g.addEventListener('click', e => {
+        e.stopPropagation();
+        if (selectedHub === hi) { selectedHub = null; hideTooltip(); }
+        else { selectedHub = hi; showTooltip(h.label, hubTooltipBody(hi), e); }
+        updateHubHighlight();
+      });
+    }
+    parent.appendChild(g);
+    return {g, box, idTxt};
+  });
+}
+
+function updateHubHighlight() {
+  if (!refs.hubIcons) return;
+  refs.hubIcons.forEach(({box, idTxt}, i) => {
+    const sel = selectedHub === i;
+    box.setAttribute('stroke', sel ? '#4a9fd8' : '#192d44');
+    box.setAttribute('fill',   sel ? '#0d2240' : '#05101c');
+    idTxt.setAttribute('fill', sel ? '#7ec8f0' : '#192d44');
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Init: main SVG (fp) — stages 1 & 2
 // ════════════════════════════════════════════════════════════════════════════
 
 const refs = {};
 
 function initFP() {
   const fp = document.getElementById('fp');
-  refs.zoneFills = buildBase(fp);
+  fp.innerHTML = '';
 
+  // Background
+  fp.appendChild(se('rect', {width:FW, height:FH, fill:'#08111d'}));
+
+  // ── Signal rings group (stage 1) ──
+  const sigG = se('g', {id:'sig-g'});
+  fp.appendChild(sigG);
+  // 6 concentric filled circles per hub (innermost to outermost)
+  refs.signalRings = HUBS.map(h => {
+    const rings = [];
+    for (let r = 0; r < 6; r++) {
+      const c = se('circle', {cx:h.x, cy:h.y, r:0, opacity:0, 'pointer-events':'none'});
+      sigG.appendChild(c);
+      rings.push(c);
+    }
+    return rings;
+  });
+
+  // ── Floor plan overlay (optional, stage 1) ──
+  refs.fpOverlay = buildFloorplanOverlay(fp);
+  refs.fpOverlay.setAttribute('opacity', 0);
+
+  // ── Hub icons (clickable in stages 1 & 2) ──
+  refs.hubIcons = buildHubIcons(fp, true);
+
+  // ── Dynamic group ──
   const dg = se('g'); fp.appendChild(dg);
 
-  // Hub pulse rings (3 per hub)
-  refs.pulses = HUBS.flatMap(h =>
-    [0,1,2].map(() => {
-      const c = se('circle', {cx:h.x, cy:h.y, r:0, fill:'none', stroke:'#1c6fb0', 'stroke-width':.8, opacity:0});
-      dg.appendChild(c); return c;
-    }));
+  // RSSI connection lines (stage 1)
+  refs.rlines = HUBS.map(() => { const l = se('line', {opacity:0, 'pointer-events':'none'}); dg.appendChild(l); return l; });
 
-  // RSSI lines
-  refs.rlines = HUBS.map(() => { const l = se('line', {opacity:0}); dg.appendChild(l); return l; });
+  // Stage 2 dual persistent paths
+  refs.rawPath = se('path', {fill:'none', stroke:'#ef4444', 'stroke-width':1.5,
+    'stroke-dasharray':'5,3', 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:0});
+  refs.hmmPath = se('path', {fill:'none', stroke:'#3b82f6', 'stroke-width':2.2,
+    'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:0});
+  dg.appendChild(refs.rawPath);
+  dg.appendChild(refs.hmmPath);
 
-  // Trail
-  refs.trail = Array.from({length:26}, () => { const c = se('circle', {r:3, opacity:0}); dg.appendChild(c); return c; });
+  // Stage 2 legend inside SVG
+  const legG = se('g', {opacity:0, 'pointer-events':'none'});
+  legG.appendChild(se('rect', {x:10, y:8, width:186, height:26, rx:5, fill:'#0a1929', stroke:'#1c3855', 'stroke-width':1}));
+  legG.appendChild(se('line', {x1:18,y1:21,x2:42,y2:21, stroke:'#ef4444','stroke-width':1.8,'stroke-dasharray':'4,3'}));
+  const r1 = se('text', {x:47, y:25, fill:'#ef4444', 'font-size':9, 'font-weight':500}); r1.textContent='Raw clusters'; legG.appendChild(r1);
+  legG.appendChild(se('line', {x1:118,y1:21,x2:142,y2:21, stroke:'#3b82f6','stroke-width':2}));
+  const r2 = se('text', {x:147, y:25, fill:'#3b82f6', 'font-size':9, 'font-weight':500}); r2.textContent='HMM'; legG.appendChild(r2);
+  fp.appendChild(legG);
+  refs.s2Legend = legG;
+
+  // Trail dots (stage 1)
+  refs.trail = Array.from({length:18}, () => {
+    const c = se('circle', {r:3, opacity:0, 'pointer-events':'none'}); dg.appendChild(c); return c;
+  });
 
   // Device glow + dot
-  refs.glow = se('circle', {r:15, 'fill-opacity':.15}); dg.appendChild(refs.glow);
-  refs.dot  = se('circle', {r:8, stroke:'white', 'stroke-width':2});  dg.appendChild(refs.dot);
+  refs.glow = se('circle', {r:15, 'fill-opacity':.15, 'pointer-events':'none'}); dg.appendChild(refs.glow);
+  refs.dot  = se('circle', {r:8, stroke:'white', 'stroke-width':2, style:'cursor:crosshair'}); dg.appendChild(refs.dot);
 
   // Zone badge
-  refs.br = se('rect',  {width:52, height:17, rx:8, opacity:.9}); dg.appendChild(refs.br);
+  refs.br = se('rect',  {width:52, height:17, rx:8, opacity:.9, 'pointer-events':'none'}); dg.appendChild(refs.br);
   refs.bt = se('text',  {fill:'white', 'font-size':9, 'text-anchor':'middle',
-    'dominant-baseline':'middle', 'font-weight':700});               dg.appendChild(refs.bt);
+    'dominant-baseline':'middle', 'font-weight':700, 'pointer-events':'none'}); dg.appendChild(refs.bt);
 
-  // Zone history strip (stage 2)
-  refs.hist = Array.from({length:30}, (_, i) => {
-    const r = se('rect', {width:16, height:14, rx:2, y:FH-22, x:FW-26-i*20, opacity:0});
-    dg.appendChild(r); return r;
-  });
-  refs.hl1 = se('text', {'font-size':8, 'text-anchor':'end',    fill:'#152535', x:FW-26-30*20-4, y:FH-13, opacity:0});
-  refs.hl1.textContent = '← zone history'; dg.appendChild(refs.hl1);
-  refs.hl2 = se('text', {'font-size':8, 'text-anchor':'middle', fill:'#152535', x:FW-18, y:FH-13, opacity:0});
-  refs.hl2.textContent = 'now'; dg.appendChild(refs.hl2);
+  // Device tooltip events (stage 1)
+  refs.dot.addEventListener('mouseenter', e => { if (stage===1) showTooltip('Device', deviceTooltipBody(), e); });
+  refs.dot.addEventListener('mouseleave', ()  => { if (stage===1) hideTooltip(); });
+  refs.dot.addEventListener('mousemove',  e   => { if (stage===1) { document.getElementById('tt-body').innerHTML = deviceTooltipBody(); positionTooltip(e); } });
+
+  // Click background to dismiss hub tooltip
+  fp.addEventListener('click', () => { selectedHub = null; updateHubHighlight(); hideTooltip(); });
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Init: stage 3 left panel — trajectory view
+// ════════════════════════════════════════════════════════════════════════════
 
 function initMFP() {
   const mfp = document.getElementById('mfp');
-  refs.mzf = buildBase(mfp);
+  mfp.innerHTML = '';
+  mfp.appendChild(se('rect', {width:FW, height:FH, fill:'#08111d'}));
+
+  refs.mRawPath = se('path', {fill:'none', stroke:'#ef4444', 'stroke-width':1.5,
+    'stroke-dasharray':'5,3', 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:.75});
+  refs.mHmmPath = se('path', {fill:'none', stroke:'#3b82f6', 'stroke-width':2.2,
+    'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:.9});
+  mfp.appendChild(refs.mRawPath);
+  mfp.appendChild(refs.mHmmPath);
+
+  buildHubIcons(mfp, false);
+
   const dg = se('g'); mfp.appendChild(dg);
-  refs.mab = ROOMS.map(r => {
-    const b = se('rect', {x:r.x+1.5, y:r.y+1.5, width:r.w-3, height:r.h-3,
-      fill:'none', 'stroke-width':2, opacity:0}); dg.appendChild(b); return b;
-  });
   refs.mdot = se('circle', {r:8, stroke:'white', 'stroke-width':2}); dg.appendChild(refs.mdot);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// Init: MDS graph (stage 3 right panel) — progressive build
+// ════════════════════════════════════════════════════════════════════════════
+
 function initMDS() {
   const mg = document.getElementById('mg');
+  mg.innerHTML = '';
   mg.appendChild(se('rect', {width:560, height:360, fill:'#08111d'}));
   for (let i=0; i<10; i++) mg.appendChild(se('line', {x1:i*58, y1:0, x2:i*58, y2:360, stroke:'#0c1c2c', 'stroke-width':1}));
   for (let i=0; i<7;  i++) mg.appendChild(se('line', {x1:0, y1:i*60, x2:560, y2:i*60, stroke:'#0c1c2c', 'stroke-width':1}));
@@ -396,7 +571,7 @@ function initMDS() {
 
   refs.medges = MEDGES.map(([a,b,w]) => {
     const l = se('line', {x1:MPOS[a].x, y1:MPOS[a].y, x2:MPOS[b].x, y2:MPOS[b].y,
-      stroke:'#0e1e2e', 'stroke-width':w*4, opacity:.4});
+      stroke:'#0e1e2e', 'stroke-width':w*4, opacity:0});
     mg.appendChild(l); return l;
   });
 
@@ -405,11 +580,11 @@ function initMDS() {
     const z = ZONES[mp.id];
     const pulse = se('circle', {cx:mp.x, cy:mp.y, r:0, fill:'none', stroke:z.color, 'stroke-width':1.5, opacity:0});
     const glow  = se('circle', {cx:mp.x, cy:mp.y, r:28, fill:z.color, 'fill-opacity':0});
-    const c     = se('circle', {cx:mp.x, cy:mp.y, r:14, fill:z.color, 'fill-opacity':.18, stroke:z.color, 'stroke-width':.8});
+    const c     = se('circle', {cx:mp.x, cy:mp.y, r:14, fill:z.color, 'fill-opacity':0, stroke:z.color, 'stroke-width':.8, opacity:0});
     const nt    = se('text',   {x:mp.x, y:mp.y, fill:'white', 'font-size':10,
-      'text-anchor':'middle', 'dominant-baseline':'middle', 'font-weight':700});
+      'text-anchor':'middle', 'dominant-baseline':'middle', 'font-weight':700, opacity:0});
     nt.textContent = z.name.replace('Zone ', '');
-    const dt    = se('text',   {x:mp.x, y:mp.y+24, fill:z.color, 'font-size':8, 'text-anchor':'middle', opacity:.8});
+    const dt    = se('text',   {x:mp.x, y:mp.y+24, fill:z.color, 'font-size':8, 'text-anchor':'middle', opacity:0});
     dt.textContent = z.desc;
     [pulse,glow,c,nt,dt].forEach(el => dg.appendChild(el));
     return {pulse, glow, c, nt, dt};
@@ -421,127 +596,155 @@ function initMDS() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function frame(now) {
-  if (!startTime) startTime = now - msRef;
-  ms = msRef = (now - startTime) % CYCLE;
+  if (lastFrameNow === null) lastFrameNow = now;
+  const dt = Math.min(now - lastFrameNow, 80);
+  lastFrameNow = now;
+
+  if (!scrubDragging) {
+    msRef = (msRef + dt * playSpeed) % CYCLE;
+  }
+  ms = msRef;
+
+  // Sync scrubber
+  if (!scrubDragging) document.getElementById('scrubber').value = Math.round(ms / CYCLE * 1000);
+  document.getElementById('scrubber-time').textContent = (ms / 1000).toFixed(1) + 's';
+
+  // Advance MDS build timer (stage 3 only)
+  if (stage === 3) mdsBuildTime = (mdsBuildTime + dt * playSpeed) % MDS_TOTAL;
 
   const pos  = dPos(ms);
   const zone = zoneOf(roomAt(pos.x, pos.y));
   const rv   = HUBS.map(h => ({...h, v: rssiOf(pos.x, pos.y, h.x, h.y)}));
   const ph   = (ms % 2000) / 2000;
 
-  // Noisy position for stage-2 raw view
-  const nx = Math.sin(ms*.023)*17 + Math.cos(ms*.037)*10;
-  const ny = Math.cos(ms*.031)*13 + Math.sin(ms*.041)*8;
-  const dp = (stage===2 && showRaw) ? {x:pos.x+nx, y:pos.y+ny} : pos;
-  const dz = (stage===2 && showRaw && Math.sin(ms*.0068)>.62) ? ZONES[(zone.id+2)%6] : zone;
+  // ── Stage 1: signal rings ──
+  const s1 = stage === 1;
+  document.getElementById('sig-g').style.display = s1 ? '' : 'none';
+  if (s1) {
+    refs.signalRings.forEach((rings, hi) => {
+      const n = rn(rv[hi].v);
+      rings.forEach((c, r) => {
+        if (n < 0.04) { c.setAttribute('opacity', 0); return; }
+        const frac = (r + 1) / rings.length;
+        const phase = ((ph + r * 0.17) % 1);
+        const maxR = 45 + n * 115;
+        const radius = maxR * frac + Math.sin(phase * Math.PI * 2) * 8 * (1 - frac * 0.6);
+        const alpha = (1 - frac) * 0.25 * n;
+        const hue = Math.round(n * 120);
+        c.setAttribute('r', radius.toFixed(1));
+        c.setAttribute('fill', `hsl(${hue},68%,50%)`);
+        c.setAttribute('opacity', alpha.toFixed(3));
+      });
+    });
+  }
 
-  // Zone fills
-  refs.zoneFills.forEach((el, i) => {
-    const z = zoneOf(ROOMS[i].id);
-    el.setAttribute('fill', z.color);
-    el.setAttribute('fill-opacity', z.id===zone.id ? .2 : .06);
-  });
+  // ── Floor plan overlay ──
+  refs.fpOverlay.setAttribute('opacity', (s1 && showFloorPlan) ? 1 : 0);
 
-  // Hub pulses (stage 1 only)
-  refs.pulses.forEach((c, j) => {
-    const hi = Math.floor(j/3), off = (j%3)*.33, h = HUBS[hi], n = rn(rv[hi].v);
-    if (stage!==1 || n<.08) { c.setAttribute('r',0); c.setAttribute('opacity',0); return; }
-    const p = (ph + off) % 1;
-    c.setAttribute('r', 9 + p*40*Math.sqrt(n));
-    c.setAttribute('opacity', (1-p)*.4*n);
-  });
-
-  // RSSI lines (stage 1 only)
+  // ── RSSI lines (stage 1) ──
   refs.rlines.forEach((l, i) => {
     const h = HUBS[i], n = rn(rv[i].v);
-    if (stage!==1 || n<.1) { l.setAttribute('opacity',0); return; }
+    if (!s1 || n < .1) { l.setAttribute('opacity', 0); return; }
     sat(l, {x1:pos.x, y1:pos.y, x2:h.x, y2:h.y,
       stroke:`hsl(${Math.round(n*120)},65%,55%)`, 'stroke-width':.5+n*2.5, opacity:.1+n*.5});
   });
 
-  // Trail
+  // ── Trail (stage 1 only) ──
   refs.trail.forEach((c, i) => {
-    const t = ((ms - i*420) % CYCLE + CYCLE) % CYCLE;
+    if (!s1) { c.setAttribute('opacity', 0); return; }
+    const t = ((ms - i * 460) % CYCLE + CYCLE) % CYCLE;
     const p = dPos(t);
-    const tx = p.x + (stage===2&&showRaw ? (Math.sin(t*.023)*17+Math.cos(t*.037)*10)*Math.max(0,1-i*.05) : 0);
-    const ty = p.y + (stage===2&&showRaw ? (Math.cos(t*.031)*13+Math.sin(t*.041)*8)*Math.max(0,1-i*.05)  : 0);
-    sat(c, {cx:tx, cy:ty, fill:zone.color, r:Math.max(1.2,3-i*.08), opacity:(1-i/26)*.5});
+    sat(c, {cx:p.x, cy:p.y, fill:zone.color, r:Math.max(1.2, 3-i*.12), opacity:(1-i/18)*.45});
   });
 
-  // Device
+  // ── Stage 2: dual persistent paths ──
+  const s2 = stage === 2;
+  refs.rawPath.setAttribute('opacity', s2 ? 0.8 : 0);
+  refs.hmmPath.setAttribute('opacity', s2 ? 0.9 : 0);
+  refs.s2Legend.setAttribute('opacity', s2 ? 1   : 0);
+  if (s2) {
+    const k = Math.max(2, Math.round((ms / CYCLE) * PATH_SAMPLES));
+    refs.rawPath.setAttribute('d', buildPathD(rawPts, k));
+    refs.hmmPath.setAttribute('d', buildPathD(hmmPts, k));
+  }
+
+  // ── Device position ──
+  const dp = s2 ? {x: pos.x + noiseX(ms), y: pos.y + noiseY(ms)} : pos;
+  const dz = (s2 && Math.sin(ms * .0068) > .62) ? ZONES[(zone.id+2)%6] : zone;
+  const showDevice = stage < 3;
   sat(refs.glow, {cx:dp.x, cy:dp.y, fill:dz.color});
   sat(refs.dot,  {cx:dp.x, cy:dp.y, fill:dz.color});
+  refs.dot.setAttribute('opacity',       showDevice ? 1 : 0);
+  refs.glow.setAttribute('fill-opacity', showDevice ? .15 : 0);
   const bx = Math.min(dp.x+12, FW-58), by = Math.max(dp.y-18, 10);
-  sat(refs.br, {x:bx, y:by-9, fill:dz.color});
-  sat(refs.bt, {x:bx+26, y:by}); refs.bt.textContent = dz.name;
+  sat(refs.br, {x:bx, y:by-9, fill:dz.color, opacity: showDevice ? .9 : 0});
+  sat(refs.bt, {x:bx+26, y:by, opacity: showDevice ? 1 : 0});
+  refs.bt.textContent = dz.name;
 
-  // History strip (stage 2)
-  const sh2 = stage === 2;
-  refs.hl1.setAttribute('opacity', sh2?1:0);
-  refs.hl2.setAttribute('opacity', sh2?1:0);
-  refs.hist.forEach((el, i) => {
-    if (!sh2) { el.setAttribute('opacity',0); return; }
-    const pm = ((ms-i*700)%CYCLE+CYCLE)%CYCLE;
-    const pz = zoneOf(roomAt(...Object.values(dPos(pm))));
-    const gl = showRaw && Math.sin(pm*.0068)>.62;
-    const dzone = gl ? ZONES[(pz.id+2)%6] : pz;
-    el.setAttribute('fill', dzone.color);
-    el.setAttribute('opacity', i===0 ? 1 : .15+(1-i/30)*.5);
-  });
-
-  // Stage 3 updates
-  if (stage===3) {
-    const mph = (ms%1800)/1800;
-    refs.mzf.forEach((el, i) => {
-      const z = zoneOf(ROOMS[i].id), act = z.id===zone.id;
-      el.setAttribute('fill', z.color);
-      el.setAttribute('fill-opacity', act?.28:.08);
-    });
-    refs.mab.forEach((el, i) => {
-      const z = zoneOf(ROOMS[i].id), act = z.id===zone.id;
-      el.setAttribute('stroke', z.color);
-      el.setAttribute('opacity', act ? .5+Math.sin(ms*.003)*.3 : 0);
-    });
+  // ── Stage 3: trajectory on left panel + MDS build ──
+  if (stage === 3) {
+    const k3 = Math.max(2, Math.round((ms / CYCLE) * PATH_SAMPLES));
+    refs.mRawPath.setAttribute('d', buildPathD(rawPts, k3));
+    refs.mHmmPath.setAttribute('d', buildPathD(hmmPts, k3));
     sat(refs.mdot, {cx:pos.x, cy:pos.y, fill:zone.color});
+
+    const buildFrac = Math.min(1, mdsBuildTime / MDS_BUILD);
+    const mph = (ms % 1800) / 1800;
+
+    // Nodes appear in the first 55% of build time
     refs.mnodes.forEach((n, i) => {
-      const z = ZONES[i], act = z.id===zone.id;
-      n.c.setAttribute('r',              act ? 20 : 14);
-      n.c.setAttribute('fill-opacity',   act ? .85 : .18);
-      n.c.setAttribute('stroke-width',   act ? 1.5 : .8);
-      n.nt.setAttribute('font-size',     act ? 12 : 10);
-      n.glow.setAttribute('fill-opacity', act ? .08 : 0);
-      if (act) { n.pulse.setAttribute('r', 22+mph*18); n.pulse.setAttribute('opacity', 1-mph); }
-      else      { n.pulse.setAttribute('r', 0);          n.pulse.setAttribute('opacity', 0); }
+      const z = ZONES[i], act = z.id === zone.id;
+      const appear = i * (0.55 / MPOS.length);
+      const vis = clamp01((buildFrac - appear) / 0.07);
+
+      n.c.setAttribute('opacity', vis);
+      n.c.setAttribute('r',             act && vis > .5 ? 20 : 14);
+      n.c.setAttribute('fill-opacity',  vis * (act ? .85 : .18));
+      n.c.setAttribute('stroke-width',  act && vis > .5 ? 1.5 : .8);
+      n.nt.setAttribute('opacity', vis);
+      n.nt.setAttribute('font-size',    act && vis > .5 ? 12 : 10);
+      n.dt.setAttribute('opacity', vis * .8);
+      n.glow.setAttribute('fill-opacity', act && vis > .5 ? .08 : 0);
+      if (act && vis > .5) {
+        n.pulse.setAttribute('r', 22 + mph * 18);
+        n.pulse.setAttribute('opacity', (1 - mph) * vis);
+      } else {
+        n.pulse.setAttribute('r', 0);
+        n.pulse.setAttribute('opacity', 0);
+      }
     });
+
+    // Edges appear in the latter 45% of build time
     refs.medges.forEach((l, i) => {
-      const [a,b] = MEDGES[i], act = a===zone.id || b===zone.id;
+      const [a,b] = MEDGES[i];
+      const edgeStart = 0.55 + (i / MEDGES.length) * 0.42;
+      const vis = clamp01((buildFrac - edgeStart) / 0.05);
+      const act = a === zone.id || b === zone.id;
       l.setAttribute('stroke',  act ? '#1c3855' : '#0e1e2e');
-      l.setAttribute('opacity', act ? .7 : .35);
+      l.setAttribute('opacity', vis * (act ? .7 : .35));
     });
   }
 
-  // Sidebar: zone badge (on zone change)
+  // ── Zone badge + pills (on zone change) ──
   if (zone.id !== lastZone) {
     lastZone = zone.id;
     const zb = document.getElementById('zbadge');
     zb.style.background = ca(zone.color, .1);
-    zb.style.border = `1px solid ${ca(zone.color, .28)}`;
+    zb.style.border     = `1px solid ${ca(zone.color, .28)}`;
     document.getElementById('zb-lbl').style.color  = zone.color;
     document.getElementById('zb-name').style.color = zone.color;
     document.getElementById('zb-name').textContent = zone.name;
     document.getElementById('zb-desc').textContent = zone.desc;
-    // Zone pills
     document.querySelectorAll('.zp').forEach((p, i) => {
-      const z = ZONES[i], act = z.id===zone.id;
+      const z = ZONES[i], act = z.id === zone.id;
       p.style.background = act ? ca(z.color,.12) : '#f9fafb';
       p.style.color      = act ? z.color          : '#9ca3af';
       p.style.border     = `1px solid ${act ? ca(z.color,.3) : '#e5e7eb'}`;
     });
-    // Stage 3 zone list
-    if (stage===3) {
+    if (stage === 3) {
       document.querySelectorAll('.szrow').forEach(row => {
         const id = parseInt(row.dataset.id);
-        const z  = ZONES[id], act = z.id===zone.id;
+        const z  = ZONES[id], act = z.id === zone.id;
         row.style.background = act ? ca(z.color,.1) : 'transparent';
         row.style.border     = `1px solid ${act ? ca(z.color,.3) : 'transparent'}`;
         row.querySelector('.szname').style.color = act ? z.color : '#111827';
@@ -549,9 +752,9 @@ function frame(now) {
     }
   }
 
-  // Sidebar: RSSI bars (stage 1, throttled to ~10fps)
-  if (stage===1 && ms-lastRssiT > 95) {
-    lastRssiT = ms;
+  // ── RSSI sidebar bars (stage 1, wall-clock throttled) ──
+  if (s1 && now - lastRssiWall > 95) {
+    lastRssiWall = now;
     rv.forEach(h => {
       const n=rn(h.v), hue=Math.round(n*120), col=`hsl(${hue},60%,42%)`;
       const bar = document.getElementById('rb-'+h.id);
@@ -561,66 +764,74 @@ function frame(now) {
     });
   }
 
+  // Keep hub tooltip RSSI value live
+  if (selectedHub !== null && stage < 3) {
+    document.getElementById('tt-body').innerHTML = hubTooltipBody(selectedHub);
+  }
+
   if (playing) rafId = requestAnimationFrame(frame);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// UI: stage switching
+// UI controls
 // ════════════════════════════════════════════════════════════════════════════
 
 function setStage(n) {
   stage = n;
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    const act = i+1===n;
-    t.classList.toggle('active', act);
-  });
-  document.getElementById('fp-wrap').style.display  = n<3 ? 'block' : 'none';
-  document.getElementById('mds-wrap').style.display = n===3 ? 'flex' : 'none';
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i+1===n));
+  document.getElementById('fp-wrap').style.display  = n < 3 ? 'block' : 'none';
+  document.getElementById('mds-wrap').style.display = n === 3 ? 'flex' : 'none';
   document.getElementById('sc').innerHTML = getSC(n);
   document.getElementById('bmark').innerHTML =
     `<span style="color:#16a34a;font-weight:500">${BMKS[n-1]}</span> · Kiarashi et al. 2023`;
   document.getElementById('sind').textContent = `Stage ${n} / 3 · Pipeline active`;
-  lastZone = -1; // force badge refresh
-  // Re-wire stage-2 toggle buttons
-  if (n===2) {
-    document.getElementById('rawbtn')?.addEventListener('click',  () => setRaw(true));
-    document.getElementById('smthbtn')?.addEventListener('click', () => setRaw(false));
-    updateRawButtons();
+  lastZone = -1;
+  selectedHub = null;
+  hideTooltip();
+  updateHubHighlight();
+  if (n === 1) {
+    document.getElementById('fp-toggle-btn')?.addEventListener('click', toggleFloorPlan);
+    document.getElementById('fp-toggle-btn').textContent = showFloorPlan ? 'Hide floor plan' : 'Show floor plan';
+    if (showFloorPlan) document.getElementById('fp-toggle-btn').classList.add('on');
   }
 }
 
-function setRaw(v) {
-  showRaw = v;
-  updateRawButtons();
-  const desc = document.getElementById('s2desc');
-  if (desc) desc.textContent = v
-    ? 'Independent zone assignment per timestep — RSSI noise causes apparent zone jumps.'
-    : 'Viterbi decodes the most likely sequence using learned transition dynamics.';
+function toggleFloorPlan() {
+  showFloorPlan = !showFloorPlan;
+  const btn = document.getElementById('fp-toggle-btn');
+  if (!btn) return;
+  btn.textContent = showFloorPlan ? 'Hide floor plan' : 'Show floor plan';
+  btn.classList.toggle('on', showFloorPlan);
 }
 
-function updateRawButtons() {
-  const rb = document.getElementById('rawbtn'), sb = document.getElementById('smthbtn');
-  if (!rb || !sb) return;
-  rb.className = 'mode-btn' + (showRaw  ? ' raw-active'    : '');
-  sb.className = 'mode-btn' + (!showRaw ? ' smooth-active' : '');
+function setSpeed(s) {
+  playSpeed = s;
+  ['05','1','2'].forEach(k => document.getElementById('spd'+k).classList.remove('active'));
+  document.getElementById(s===0.5?'spd05':s===2?'spd2':'spd1').classList.add('active');
+  lastFrameNow = null;
 }
 
 function togglePlay() {
   playing = !playing;
   document.getElementById('playbtn').textContent = playing ? '⏸' : '▶';
-  if (playing) { startTime = performance.now() - msRef; rafId = requestAnimationFrame(frame); }
+  if (playing) { lastFrameNow = null; rafId = requestAnimationFrame(frame); }
+}
+
+function rebuildMDS() {
+  mdsBuildTime = 0;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Sidebar content templates
+// Sidebar content
 // ════════════════════════════════════════════════════════════════════════════
 
 function getSC(n) {
-  if (n===1) return `
+  if (n === 1) return `
+    <button id="fp-toggle-btn" class="fp-toggle">Show floor plan</button>
     <div class="sc-lbl">Algorithm</div>
     <div class="sc-card">
       <div class="sc-card-title">k-means clustering (k=6)</div>
-      Groups similar RSSI vectors into implicit zones. No labels or floor plan required.
+      Groups similar RSSI vectors into implicit zones. No labels or floor plan required. Hubs emit signal fields — device moves through overlapping coverage.
     </div>
     <div class="sc-lbl">Live RSSI vector</div>
     ${HUBS.map(h => `
@@ -633,28 +844,24 @@ function getSC(n) {
           <div id="rb-${h.id}" style="height:100%;width:0;border-radius:2px;transition:width .1s"></div>
         </div>
       </div>`).join('')}
-    <div class="sc-card">
-      Benchmark: <span style="color:#16a34a">94–99%</span> zone-level accuracy
-      — Mallik et al., Eng. AI 2023
-    </div>`;
+    <div class="sc-card">Benchmark: <span style="color:#16a34a">94–99%</span> zone-level accuracy — Mallik et al., Eng. AI 2023</div>
+    <div class="sc-card" style="font-size:11px;color:#9ca3af">Hover device dot for RSSI vector · Click any hub icon for details</div>`;
 
-  if (n===2) return `
-    <div class="sc-lbl">View mode</div>
-    <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button id="rawbtn"  class="mode-btn raw-active">Raw clusters</button>
-      <button id="smthbtn" class="mode-btn">HMM decoded</button>
-    </div>
+  if (n === 2) return `
     <div class="sc-card">
-      <span id="s2desc">Independent zone assignment per timestep — RSSI noise causes apparent zone jumps.</span>
+      <div class="sc-card-title">Raw vs HMM decoded — both shown</div>
+      <div style="margin:8px 0 6px;display:flex;gap:14px">
+        <span><span class="leg-swatch" style="background:#ef4444;border-top:2px dashed #ef4444"></span><span style="color:#ef4444;font-size:11px">Raw clusters</span></span>
+        <span><span class="leg-swatch" style="background:#3b82f6"></span><span style="color:#3b82f6;font-size:11px">HMM decoded</span></span>
+      </div>
+      Path accumulates from cycle start. Raw (dashed red) shows noisy per-timestep classification. HMM (solid blue) is the Viterbi-decoded smooth sequence. Smoothing effect becomes obvious as the paths diverge.
     </div>
     <div class="sc-card">
       <div class="sc-card-title">Hidden Markov Model</div>
       Hidden states = zones · Emissions = RSSI distributions · Transition matrix learned from data
     </div>
-    <div class="sc-card">
-      Reference: <span style="color:#16a34a">Alshamaa et al., IEEE SAS 2019</span><br>
-      BLE trajectory tracking in clinical setting
-    </div>`;
+    <div class="sc-card">Reference: <span style="color:#16a34a">Alshamaa et al., IEEE SAS 2019</span><br>BLE trajectory tracking in clinical setting</div>
+    <div class="sc-card" style="font-size:11px;color:#9ca3af">Click hub icons to inspect live RSSI</div>`;
 
   return `
     <div class="sc-card">
@@ -680,35 +887,49 @@ function getSC(n) {
 // ════════════════════════════════════════════════════════════════════════════
 
 (function init() {
-  // Build tab bar
+  // Tab bar
   const tc = document.getElementById('tabs');
   TABS.forEach(t => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (t.n===1 ? ' active' : '');
     btn.onclick   = () => setStage(t.n);
-    btn.innerHTML = `<div class="tname">Stage ${t.n} · ${t.name}</div>
-                     <div class="tsub">${t.sub}</div>`;
+    btn.innerHTML = `<div class="tname">Stage ${t.n} · ${t.name}</div><div class="tsub">${t.sub}</div>`;
     tc.appendChild(btn);
   });
 
-  // Build zone pills
+  // Zone pills
   const zpc = document.getElementById('zpills');
   ZONES.forEach(z => {
     const p = document.createElement('div');
-    p.className = 'zp';
-    p.textContent = z.name;
-    zpc.appendChild(p);
+    p.className = 'zp'; p.textContent = z.name; zpc.appendChild(p);
   });
 
-  // Build SVGs
+  // Pre-compute path samples, then build SVGs
+  precomputePaths();
   initFP();
   initMFP();
   initMDS();
 
-  // Initial stage content + benchmark
-  setStage(1);
+  // Scrubber wiring
+  const scrub = document.getElementById('scrubber');
+  scrub.addEventListener('mousedown', () => {
+    scrubDragging = true;
+    wasPlayingBeforeScrub = playing;
+    if (!playing) { playing = true; lastFrameNow = null; rafId = requestAnimationFrame(frame); }
+  });
+  scrub.addEventListener('input', () => {
+    msRef = (parseInt(scrub.value) / 1000) * CYCLE;
+  });
+  scrub.addEventListener('mouseup', () => {
+    scrubDragging = false;
+    if (!wasPlayingBeforeScrub) {
+      playing = false;
+      document.getElementById('playbtn').textContent = '▶';
+    }
+    lastFrameNow = null;
+  });
 
-  // Start animation
+  setStage(1);
   rafId = requestAnimationFrame(frame);
 })();
 </script>
