@@ -1,0 +1,17 @@
+# Data handling
+pandas
+numpy
+
+# Machine learning / algorithms
+scikit-learn        # clustering (k-means, GMM)
+hmmlearn            # Hidden Markov Models
+
+# Visualisation
+matplotlib
+seaborn
+
+# Databricks connectivity (for real data pull)
+databricks-sdk
+
+# GUI (demo layer) — uncomment preferred framework when ready
+# PyQt5

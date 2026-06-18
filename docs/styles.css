@@ -1,0 +1,79 @@
+/* ── Reset & base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0f1a;
+             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+button { font-family: inherit; }
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+#toolbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 50px;
+  background: rgba(4, 9, 20, 0.97);
+  border-bottom: 1px solid rgba(14, 200, 216, 0.16);
+  display: flex; align-items: center; gap: 6px; padding: 0 14px;
+  z-index: 100; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  user-select: none;
+}
+
+.brand {
+  font-size: 13px; font-weight: 600; color: #0ec8d8;
+  letter-spacing: .3px; flex-shrink: 0; margin-right: 2px; white-space: nowrap;
+}
+.brand em { color: rgba(130, 195, 215, 0.42); font-style: normal; font-weight: 400; }
+
+.vsep { width: 1px; height: 28px; background: rgba(14, 200, 216, 0.13); flex-shrink: 0; margin: 0 4px; }
+
+/* Mode buttons */
+.mbtn {
+  padding: 5px 11px; border-radius: 5px; font-size: 11.5px; font-weight: 500;
+  border: 1px solid rgba(14, 200, 216, 0.17); background: transparent;
+  color: rgba(165, 205, 220, 0.55); cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+  white-space: nowrap; flex-shrink: 0; outline: none;
+}
+.mbtn:hover  { background: rgba(14,200,216,.09); color: #0ec8d8; border-color: rgba(14,200,216,.45); }
+.mbtn.on     { background: rgba(14,200,216,.15); color: #0ec8d8; border-color: #0ec8d8; }
+.mbtn.danger { border-color: rgba(239,68,68,.22); color: rgba(239,68,68,.55); }
+.mbtn.danger:hover { background: rgba(239,68,68,.09); color: #ef4444; border-color: rgba(239,68,68,.65); }
+.mbtn.danger.on    { background: rgba(239,68,68,.15); color: #ef4444; border-color: #ef4444; }
+
+/* Controls */
+.clbl { font-size: 11px; color: rgba(145, 190, 212, 0.48); white-space: nowrap; flex-shrink: 0; }
+#rval { color: #0ec8d8; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 24px; display: inline-block; }
+#rslider { width: 80px; accent-color: #0ec8d8; cursor: pointer; flex-shrink: 0; }
+
+.ckwrap { display: flex; align-items: center; gap: 5px; flex-shrink: 0; cursor: pointer; }
+.ckwrap input  { accent-color: #0ec8d8; width: 13px; height: 13px; cursor: pointer; }
+.ckwrap label  { font-size: 11.5px; color: rgba(160, 205, 220, 0.55); cursor: pointer; white-space: nowrap; }
+
+#clearbtn {
+  padding: 5px 12px; border-radius: 5px; font-size: 11.5px; font-weight: 500;
+  border: 1px solid rgba(239,68,68,.28); background: transparent;
+  color: rgba(239,68,68,.58); cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+  white-space: nowrap; flex-shrink: 0; margin-left: auto; outline: none;
+}
+#clearbtn:hover { background: rgba(239,68,68,.11); color: #ef4444; border-color: #ef4444; }
+
+/* ── Canvas ─────────────────────────────────────────────────────── */
+#canvas { position: fixed; top: 50px; left: 0; display: block; }
+
+/* ── Tooltip ────────────────────────────────────────────────────── */
+#tooltip {
+  position: fixed; display: none; pointer-events: none; z-index: 200;
+  background: rgba(3, 8, 20, 0.97); border: 1px solid rgba(14,200,216,.45);
+  border-radius: 7px; padding: 9px 13px; min-width: 140px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+.tt-name { font-size: 12px; font-weight: 600; color: #0ec8d8; margin-bottom: 5px; }
+.tt-xy   { font-size: 11px; color: rgba(145,195,215,.65); font-family: 'Courier New', monospace; line-height: 1.7; }
+.tt-sep  { height: 1px; background: rgba(14,200,216,.12); margin: 6px 0; }
+.tt-hint { font-size: 10px; color: rgba(110,165,185,.4); }
+
+/* ── Key hint strip (bottom) ────────────────────────────────────── */
+#keyhints {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 22px;
+  background: rgba(3, 8, 20, 0.88); border-top: 1px solid rgba(14,200,216,.10);
+  display: flex; align-items: center; padding: 0 14px; gap: 20px;
+  pointer-events: none; z-index: 50;
+}
+.kh { font-size: 10px; color: rgba(110,165,185,.42); white-space: nowrap; }
+.kh b { color: rgba(14,200,216,.58); font-weight: 600; }
