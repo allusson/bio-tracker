@@ -1,6 +1,12 @@
 # Generated outputs — never commit derived artifacts
 outputs/
 
+# Analysis notebooks — only commit clean (unrun) notebooks; never commit with
+# cell outputs since they may contain real patient/device data.
+# Before committing: jupyter nbconvert --clear-output --inplace analysis/*.ipynb
+analysis/outputs/
+analysis/**/.ipynb_checkpoints/
+
 # Real data files — never commit patient/device data
 *.csv
 *.parquet

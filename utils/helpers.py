@@ -41,7 +41,13 @@ def floor_timestamp(ts: pd.Timestamp, window_minutes: int) -> pd.Timestamp:
     # like 7 or 11 that don't divide 60, the formula still produces a
     # repeatable bucket but the buckets won't align to clock hours — that's
     # acceptable for our use case since WINDOW_MINUTES = 10.
-    pass
+    remainder = ts.minute % window_minutes
+
+    floored = ts - timedelta(minutes=remainder)
+
+    floored = floored.replace(second=0, microsecond=0)
+
+    return floored
 
 
 def rssi_to_distance(rssi: float, rssi_ref: float, path_loss_exp: float) -> float:

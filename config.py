@@ -9,7 +9,7 @@ USE_SYNTHETIC = True
 # --- Time windowing ---
 # Size of the time bucket used to group hub readings into RSSI vectors.
 # Should match the hub scan/upload interval (currently 10 minutes for real data).
-WINDOW_MINUTES = 10
+WINDOW_MINUTES = 20
 
 # Tolerance when aligning timestamps across hubs (in minutes).
 # Readings within this tolerance of a window boundary are grouped together.

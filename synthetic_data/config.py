@@ -30,4 +30,4 @@ RSSI_MIN_THRESHOLD = -90
 
 # --- Scan timing ---
 # How often a hub reports a scan result (minutes) — matches real hub behaviour
-SCAN_WINDOW_MINUTES = 10
+SCAN_WINDOW_MINUTES = 20
