@@ -1,0 +1,8 @@
+### 3.1 — Summary of Thread 1 Findings
+
+<!-- TODO: fill in after running -->
+
+- **Hub cadence:** observed median gap = **619 s** (expected 600 s). Assessment: [stable / unstable].
+- **Phase stability:** [all hubs show horizontal bands / hub X shows drift].
+- **Offset population:** distribution is [approximately uniform / clustered]. Maximum pairwise spread observed: **X s**.
+- **20-min window justification:** [confirmed / needs revision]. The window provides a **X×** safety margin over the observed p99 spread.

@@ -84,7 +84,9 @@ def rssi_to_distance(rssi: float, rssi_ref: float, path_loss_exp: float) -> floa
     #
     # Hint: Python uses ** for exponentiation.  math.pow(10, exp_val) is
     # equivalent but slightly slower — either is fine.
-    pass
+    exp_val = (rssi_ref - rssi)  / (10 * path_loss_exp)
+
+    d = 10 ** exp_val
 
 
 def load_data(use_synthetic: bool | None = None) -> pd.DataFrame:
