@@ -1,4 +1,4 @@
-# synthetic_data/
+# data/synthetic_data/
 
 Generates a synthetic RSSI dataset that mimics real BioHub scan telemetry. Used for offline pipeline development and testing when a Databricks connection is not available or when you want a reproducible dataset with known ground truth positions.
 
@@ -107,12 +107,12 @@ The `docs/js/rssi.js` sandbox uses slightly different constants (`RSSI_AT_1M = -
 
 ```bash
 # Run as a script — generates outputs/synthetic_data.csv
-python synthetic_data/generator.py
+python data/synthetic_data/generator.py
 ```
 
 ```python
 # Import directly from another module or notebook
-from synthetic_data.generator import generate
+from data.synthetic_data.generator import generate
 
 df = generate()   # returns long-format DataFrame
 print(df.head())

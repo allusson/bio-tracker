@@ -1,4 +1,4 @@
-# synthetic_data/generator.py
+# data/synthetic_data/generator.py
 #
 # Generates a synthetic RSSI dataset that mimics real BioHub scan telemetry.
 #
@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from synthetic_data import config
+from data.synthetic_data import config
 
 
 # ---------------------------------------------------------------------------

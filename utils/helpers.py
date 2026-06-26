@@ -110,12 +110,12 @@ def load_data(use_synthetic: bool | None = None) -> pd.DataFrame:
     # Step 2 — branch on the flag:
     #
     #   if use_synthetic is True:
-    #       from synthetic_data import generator
+    #       from data.synthetic_data import generator
     #       return generator.generate()
     #       # generator.generate() returns a DataFrame in the standard format
     #
     #   else:
-    #       from real_data import databricks_pull, preprocessor
+    #       from data.real_data import databricks_pull, preprocessor
     #       raw_df = databricks_pull.pull()     # raw Databricks schema
     #       return preprocessor.preprocess(raw_df)  # clean, standardised schema
     #

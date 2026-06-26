@@ -1,4 +1,4 @@
-# pipeline/
+# src/pipeline/
 
 Core algorithm stages of the localization pipeline. Each module takes the output of the previous stage and adds one layer of inference. Modules are controlled by `config.py` at the repo root.
 

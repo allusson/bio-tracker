@@ -8,12 +8,12 @@ Unsupervised indoor BLE localization pipeline for Bio Button wearable devices in
 
 ```mermaid
 flowchart TD
-    GEN["synthetic_data/generator.py\n— synthetic source —"]
-    DB["real_data/databricks_pull.py\n— real source (stub) —"]
-    PRE["real_data/preprocessor.py"]
-    WR["pipeline/wrangler.py\nRSSI-vector builder"]
-    CL["pipeline/clustering.py\nk-means / GMM / DBSCAN\n(stub)"]
-    HMM["pipeline/hmm.py\nHMM + Viterbi decoder\n(stub)"]
+    GEN["data/synthetic_data/generator.py\n— synthetic source —"]
+    DB["data/real_data/databricks_pull.py\n— real source (stub) —"]
+    PRE["data/real_data/preprocessor.py"]
+    WR["src/pipeline/wrangler.py\nRSSI-vector builder"]
+    CL["src/pipeline/clustering.py\nk-means / GMM / DBSCAN\n(stub)"]
+    HMM["src/pipeline/hmm.py\nHMM + Viterbi decoder\n(stub)"]
     MDS["Stage 3 — MDS pseudo-map\n(planned)"]
     PF["Stage 4 — Particle filter\n(planned)"]
 
@@ -36,33 +36,35 @@ bio-tracker/
 ├── requirements.txt        # Python dependencies
 ├── .env                    # Databricks credentials (gitignored — never commit)
 │
-├── synthetic_data/         # synthetic RSSI dataset generator for offline development
-│   ├── config.py           # generator-specific parameters (floor size, hubs, path loss)
-│   └── generator.py        # simulates hub-device scanning; outputs long-format DataFrame
+├── src/
+│   ├── pipeline/           # core algorithm stages
+│   │   ├── wrangler.py     # Stage 1: pivot long rows → wide RSSI vectors
+│   │   ├── clustering.py   # Stage 2: k-means / GMM / DBSCAN zone discovery (stub)
+│   │   └── hmm.py          # Stage 3: HMM + Viterbi zone-sequence smoother (stub)
+│   └── simulator/          # BLE localization simulator (not yet implemented)
 │
-├── real_data/              # Databricks connectivity and raw data preprocessing
-│   ├── databricks_pull.py  # stub: SQL query to pull raw scan telemetry
-│   └── preprocessor.py     # cleans raw Databricks rows into the standard pipeline schema
-│
-├── pipeline/               # core algorithm stages
-│   ├── wrangler.py         # Stage 1: pivot long rows → wide RSSI vectors
-│   ├── clustering.py       # Stage 2: k-means / GMM / DBSCAN zone discovery (stub)
-│   └── hmm.py              # Stage 3: HMM + Viterbi zone-sequence smoother (stub)
+├── data/
+│   ├── synthetic_data/     # synthetic RSSI dataset generator for offline development
+│   │   ├── config.py       # generator-specific parameters (floor size, hubs, path loss)
+│   │   └── generator.py    # simulates hub-device scanning; outputs long-format DataFrame
+│   └── real_data/          # Databricks connectivity and raw data preprocessing
+│       ├── databricks_pull.py  # stub: SQL query to pull raw scan telemetry
+│       └── preprocessor.py    # cleans raw Databricks rows into the standard pipeline schema
 │
 ├── utils/
 │   └── helpers.py          # shared utilities: floor_timestamp, rssi_to_distance, load_data
 │
-├── analysis/               # Jupyter notebooks for EDA and pipeline validation
+├── notebooks/              # Jupyter notebooks for EDA and pipeline validation
 │   ├── 01_data_overview.ipynb          # real data: gateways, RSSI distribution, clock offsets
 │   ├── 02_multi_hub_visibility.ipynb   # bucketing comparison (10 min vs 20 min) + wrangler QA
-│   └── 03_synthetic_vs_real.ipynb      # side-by-side calibration comparison (skeleton)
+│   ├── 03_synthetic_vs_real.ipynb      # side-by-side calibration comparison (skeleton)
+│   └── 04_windowing_reassessment.ipynb # windowing strategy reassessment (in progress)
 │
 ├── docs/                   # standalone browser-based BLE coverage sandbox (no Python)
 │   ├── index.html
 │   ├── styles.css
 │   └── js/                 # canvas rendering, path-loss model, zone coloring
 │
-├── gui/                    # Python GUI layer (placeholder — not yet implemented)
 └── outputs/                # generated plots and CSVs (gitignored)
 ```
 
@@ -72,16 +74,17 @@ bio-tracker/
 
 | Module | File | Status |
 |---|---|---|
-| Synthetic data generator | `synthetic_data/generator.py` | Implemented |
-| Preprocessor | `real_data/preprocessor.py` | Implemented |
-| Wrangler | `pipeline/wrangler.py` | Implemented |
-| Clustering | `pipeline/clustering.py` | Stub |
-| HMM | `pipeline/hmm.py` | Stub |
-| Databricks pull | `real_data/databricks_pull.py` | Stub |
+| Synthetic data generator | `data/synthetic_data/generator.py` | Implemented |
+| Preprocessor | `data/real_data/preprocessor.py` | Implemented |
+| Wrangler | `src/pipeline/wrangler.py` | Implemented |
+| Clustering | `src/pipeline/clustering.py` | Stub |
+| HMM | `src/pipeline/hmm.py` | Stub |
+| Databricks pull | `data/real_data/databricks_pull.py` | Stub |
 | Helpers | `utils/helpers.py` | Student implementation in progress |
-| Data overview notebook | `analysis/01_data_overview.ipynb` | Implemented |
-| Multi-hub visibility notebook | `analysis/02_multi_hub_visibility.ipynb` | Implemented (requires `floor_timestamp()`) |
-| Synthetic vs real notebook | `analysis/03_synthetic_vs_real.ipynb` | Skeleton only |
+| Data overview notebook | `notebooks/01_data_overview.ipynb` | Implemented |
+| Multi-hub visibility notebook | `notebooks/02_multi_hub_visibility.ipynb` | Implemented (requires `floor_timestamp()`) |
+| Synthetic vs real notebook | `notebooks/03_synthetic_vs_real.ipynb` | Skeleton only |
+| Windowing reassessment notebook | `notebooks/04_windowing_reassessment.ipynb` | In progress |
 
 ---
 
@@ -144,7 +147,7 @@ connection = sql.connect(
 )
 ```
 
-See `real_data/databricks_pull.py` (stub) and the connection setup cells in each notebook.
+See `data/real_data/databricks_pull.py` (stub) and the connection setup cells in each notebook.
 
 ---
 
@@ -169,7 +172,7 @@ MultiIndex `(device_id, time_window)` × hub columns. `NaN` where a hub did not 
 
 ```bash
 # Generate synthetic data (saved to outputs/synthetic_data.csv)
-python synthetic_data/generator.py
+python data/synthetic_data/generator.py
 
 # Verify Databricks connection
 python test_connection.py
@@ -178,8 +181,8 @@ python test_connection.py
 From a notebook or script, import the pipeline directly:
 
 ```python
-from synthetic_data.generator import generate
-from pipeline.wrangler import wrangle
+from data.synthetic_data.generator import generate
+from src.pipeline.wrangler import wrangle
 
 df = generate()           # long-format DataFrame
 wide = wrangle(df)        # RSSI vectors, indexed by (device_id, time_window)

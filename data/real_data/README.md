@@ -1,6 +1,6 @@
-# real_data/
+# data/real_data/
 
-Handles connectivity to Databricks and conversion of raw scan telemetry into the standard pipeline schema. The two files here serve as the real-data counterpart to `synthetic_data/generator.py`: together they produce the same long-format `gateway_id | timestamp | device_id | rssi` DataFrame that the rest of the pipeline consumes.
+Handles connectivity to Databricks and conversion of raw scan telemetry into the standard pipeline schema. The two files here serve as the real-data counterpart to `data/synthetic_data/generator.py`: together they produce the same long-format `gateway_id | timestamp | device_id | rssi` DataFrame that the rest of the pipeline consumes.
 
 ---
 
